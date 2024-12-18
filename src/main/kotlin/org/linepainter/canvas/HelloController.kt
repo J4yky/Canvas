@@ -2,11 +2,16 @@ package org.linepainter.canvas
 
 import javafx.fxml.FXML
 import javafx.scene.control.Button
+import javafx.scene.control.TextField
+import javafx.event.EventHandler
+import javafx.stage.FileChooser
+import javax.imageio.ImageIO
 import javafx.scene.layout.AnchorPane
 import javafx.scene.paint.Color
 import javafx.scene.shape.*
 import kotlin.math.abs
 import kotlin.math.hypot
+import javafx.embed.swing.SwingFXUtils
 
 class HelloController {
     @FXML
@@ -30,6 +35,15 @@ class HelloController {
     @FXML
     private lateinit var colorButton: Button
 
+    @FXML
+    private lateinit var textButton: Button
+
+    @FXML
+    private lateinit var saveButton: Button
+
+    @FXML
+    private lateinit var loadImageButton: Button
+
     private var selectedColor: Color = Color.BLACK
     private var selectedShape: String = "Line"
 
@@ -44,6 +58,9 @@ class HelloController {
         squareButton.setOnAction { selectedShape = "Square" }
         circleButton.setOnAction { selectedShape = "Circle" }
         ellipseButton.setOnAction { selectedShape = "Ellipse" }
+        textButton.setOnAction { selectedShape = "Text" }
+        saveButton.setOnAction { saveToFile() }
+        loadImageButton.setOnAction { loadImage() }
 
         colorButton.setOnAction {
             val colorPicker = javafx.scene.control.ColorPicker(selectedColor)
@@ -65,29 +82,67 @@ class HelloController {
         }
 
         anchorPane.setOnMousePressed { event ->
-            startX = event.x
-            startY = event.y
-            tempShape = when (selectedShape) {
-                "Line" -> Line(startX, startY, startX, startY).apply { stroke = selectedColor }
-                "Rectangle" -> Rectangle(startX, startY, 0.0, 0.0).apply {
-                    stroke = selectedColor
-                    fill = Color.TRANSPARENT
+            when (selectedShape) {
+                "Line" -> {
+                    startX = event.x
+                    startY = event.y
+                    tempShape = Line(startX, startY, startX, startY).apply { stroke = selectedColor }
+                    tempShape?.let { anchorPane.children.add(it) }
                 }
-                "Square" -> Rectangle(startX, startY, 0.0, 0.0).apply {
-                    stroke = selectedColor
-                    fill = Color.TRANSPARENT
+                "Rectangle", "Square" -> {
+                    startX = event.x
+                    startY = event.y
+                    tempShape = Rectangle(startX, startY, 0.0, 0.0).apply {
+                        stroke = selectedColor
+                        fill = Color.TRANSPARENT
+                    }
+                    tempShape?.let { anchorPane.children.add(it) }
                 }
-                "Circle" -> Circle(startX, startY, 0.0).apply {
-                    stroke = selectedColor
-                    fill = Color.TRANSPARENT
+                "Circle" -> {
+                    startX = event.x
+                    startY = event.y
+                    tempShape = Circle(startX, startY, 0.0).apply {
+                        stroke = selectedColor
+                        fill = Color.TRANSPARENT
+                    }
+                    tempShape?.let { anchorPane.children.add(it) }
                 }
-                "Ellipse" -> Ellipse(startX, startY, 0.0, 0.0).apply {
-                    stroke = selectedColor
-                    fill = Color.TRANSPARENT
+                "Ellipse" -> {
+                    startX = event.x
+                    startY = event.y
+                    tempShape = Ellipse(startX, startY, 0.0, 0.0).apply {
+                        stroke = selectedColor
+                        fill = Color.TRANSPARENT
+                    }
+                    tempShape?.let { anchorPane.children.add(it) }
                 }
-                else -> null
+                "Text" -> {
+                    startX = event.x
+                    startY = event.y
+                    val textField = TextField().apply {
+                        layoutX = startX
+                        layoutY = startY
+                        promptText = "Enter text"
+                    }
+                    textField.onAction = EventHandler {
+                        val textLabel = javafx.scene.control.Label(textField.text).apply {
+                            layoutX = textField.layoutX
+                            layoutY = textField.layoutY
+                        }
+                        anchorPane.children.remove(textField)
+                        anchorPane.children.add(textLabel)
+                    }
+                    textField.setOnKeyPressed { keyEvent ->
+                        if (keyEvent.code == javafx.scene.input.KeyCode.ESCAPE) {
+                            anchorPane.children.remove(textField)
+                        }
+                    }
+
+
+                    anchorPane.children.add(textField)
+                    textField.requestFocus()
+                }
             }
-            tempShape?.let { anchorPane.children.add(it) }
         }
 
         anchorPane.setOnMouseDragged { event ->
@@ -118,6 +173,49 @@ class HelloController {
 
         anchorPane.setOnMouseReleased {
             tempShape = null
+        }
+    }
+    private fun saveToFile() {
+        val writableImage = javafx.scene.image.WritableImage(
+            anchorPane.width.toInt(),
+            anchorPane.height.toInt()
+        )
+        anchorPane.snapshot(null, writableImage)
+
+        // Wybieramy miejsce zapisu pliku
+        val fileChooser = FileChooser().apply {
+            title = "Save Image"
+            extensionFilters.add(FileChooser.ExtensionFilter("PNG Files", "*.png"))
+        }
+        val file = fileChooser.showSaveDialog(anchorPane.scene.window)
+        if (file != null) {
+            // Zapisujemy obraz do pliku PNG
+            val bufferedImage = SwingFXUtils.fromFXImage(writableImage, null)
+            ImageIO.write(bufferedImage, "PNG", file)
+        }
+    }
+
+    private fun loadImage() {
+        val fileChooser = FileChooser().apply {
+            title = "Load Image"
+            extensionFilters.addAll(
+                FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg", "*.gif")
+            )
+        }
+
+        val file = fileChooser.showOpenDialog(loadImageButton.scene.window)
+        if (file != null) {
+            try {
+                val image = javafx.scene.image.Image(file.toURI().toString())
+                val imageView = javafx.scene.image.ImageView(image).apply {
+                    isPreserveRatio = true
+                    fitWidth = anchorPane.width
+                    fitHeight = anchorPane.height
+                }
+                anchorPane.children.add(imageView)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 }

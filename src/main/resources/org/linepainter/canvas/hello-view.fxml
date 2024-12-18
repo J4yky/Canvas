@@ -15,6 +15,9 @@
             <Button fx:id="circleButton" text="Circle" />
             <Button fx:id="ellipseButton" text="Ellipse" />
             <Button fx:id="colorButton" text="Color" />
+            <Button fx:id="textButton" text="Text" />
+            <Button fx:id="saveButton" text="Save Image" />
+            <Button fx:id="loadImageButton" text="Load Image" />
         </ToolBar>
     </top>
     <center>
